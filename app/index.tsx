@@ -1,17 +1,27 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { SafeAreaView, StyleSheet, Text, View, TouchableOpacity, StatusBar } from "react-native"
-import { LinearGradient } from "expo-linear-gradient"
 import { Ionicons } from "@expo/vector-icons"
+import { LinearGradient } from "expo-linear-gradient"
+import { useEffect, useState } from "react"
+import { KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
+import IconButton from '../components/IconButton'
+import { useTheme } from '../context/ThemeContext'
 import SettingsScreen from "./settings"
+
+type IconName = keyof typeof Ionicons.glyphMap;
+
+interface Message {
+    id: string;
+    text: string;
+    sender: 'user' | 'ai';
+}
 
 export default function App() {
     const [isListening, setIsListening] = useState(false)
-    const [responseText, setResponseText] = useState(
-        "Create a futuristic, cyberpunk-style chatbot app featuring a sleek, dark interface. The chatbot should be displayed with neon purple text and glow. The background should include vibrant neon purple, pink, and blue, blending into the dark environment...",
-    )
     const [showSettings, setShowSettings] = useState(false)
+    const { colors, theme } = useTheme();
+    const [textInput, setTextInput] = useState('')
+    const [messages, setMessages] = useState<Message[]>([
+        { id: '1', text: "Hello! How can I help you today?", sender: 'ai' }
+    ]);
 
     // Simulate listening state
     useEffect(() => {
@@ -31,113 +41,152 @@ export default function App() {
         setShowSettings(!showSettings)
     }
 
+    const handleSendText = () => {
+        if (textInput.trim()) {
+            const newMessage: Message = {
+                id: Date.now().toString(),
+                text: textInput,
+                sender: 'user'
+            };
+            setMessages(prev => [...prev, newMessage]);
+            // Simulate AI response
+            setTimeout(() => {
+                const aiResponse: Message = {
+                    id: (Date.now() + 1).toString(),
+                    text: `You said: ${textInput}`,
+                    sender: 'ai'
+                };
+                setMessages(prev => [...prev, aiResponse]);
+            }, 1000);
+            setTextInput('');
+        }
+    }
+
     if (showSettings) {
         return <SettingsScreen onBack={() => setShowSettings(false)} />
     }
 
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" />
-
-            {/* Header with settings button */}
-            <View style={styles.header}>
-                <View style={{ flex: 1 }} />
-                <TouchableOpacity style={styles.settingsButton} onPress={toggleSettings}>
-                    <Ionicons name="settings" size={24} color="#bb86fc" />
-                </TouchableOpacity>
-            </View>
-
-            {/* Main content area */}
-            <View style={styles.content}>
-                <View style={styles.responseContainer}>
-                    <Text style={styles.responseText}>{responseText}</Text>
-                    {isListening && <Text style={styles.listeningText}>Listening...</Text>}
+        <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1 }}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        >
+            <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+                {/* Fixed Header */}
+                <View style={styles.header}>
+                    <View style={{ flex: 1 }} />
+                    <IconButton name="settings" onPress={toggleSettings} />
                 </View>
-            </View>
 
-            {/* Microphone button */}
-            <View style={styles.buttonContainer}>
-                <TouchableOpacity activeOpacity={0.7} onPress={handlePress} style={styles.buttonOuter}>
-                    <LinearGradient
-                        colors={["#9c27b0", "#e91e63"]}
-                        style={styles.gradient}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
+                {/* Scrollable Messages */}
+                <View style={styles.messagesWrapper}>
+                    <ScrollView
+                        style={styles.messagesList}
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={styles.messagesContent}
                     >
-                        <View style={styles.buttonInner}>
-                            <Ionicons name="mic" size={28} color="#ffffff" />
-                        </View>
-                    </LinearGradient>
-                </TouchableOpacity>
-            </View>
-        </SafeAreaView>
+                        {messages.map((message) => (
+                            <View
+                                key={message.id}
+                                style={[
+                                    styles.messageContainer,
+                                    message.sender === 'user'
+                                        ? [styles.userMessage, { backgroundColor: colors.surface }]
+                                        : [styles.aiMessage, {
+                                            backgroundColor: colors.background,
+                                            borderColor: colors.surface
+                                        }]
+                                ]}
+                            >
+                                <Text style={[
+                                    styles.messageText,
+                                    { color: colors.text }
+                                ]}>
+                                    {message.text}
+                                </Text>
+                            </View>
+                        ))}
+                    </ScrollView>
+                </View>
+                {/* Listening Indicator */}
+                {isListening && (
+                    <View style={[
+                        // styles.messageContainer,
+                        // styles.aiMessage,
+                        styles.ListeningContainer,
+                        {
+                            backgroundColor: colors.background,
+                            borderColor: colors.surface
+                        }
+                    ]}>
+                        <Text style={[styles.listeningText, { color: colors.text }]}>
+                            Listening...
+                        </Text>
+                    </View>
+                )}
+                {/* Fixed Input Area */}
+                <View style={styles.buttonContainer}>
+                    <View style={styles.textInputContainer}>
+                        <TextInput
+                            style={[styles.textInput, {
+                                color: colors.text,
+                                backgroundColor: colors.surface
+                            }]}
+                            value={textInput}
+                            onChangeText={setTextInput}
+                            placeholder="Type a message..."
+                            placeholderTextColor={colors.tabIconDefault}
+                            onSubmitEditing={handleSendText}
+                        />
+                    </View>
+
+                    <TouchableOpacity activeOpacity={0.7} onPress={handlePress} style={styles.buttonOuter}>
+                        <LinearGradient
+                            colors={[colors.surface, colors.text]}
+                            style={styles.gradient}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <View style={[styles.buttonInner, { backgroundColor: colors.background }]}>
+                                <Ionicons name="mic" size={28} color={colors.text} />
+                            </View>
+                        </LinearGradient>
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
+        </KeyboardAvoidingView >
     )
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#000000",
-        padding: 20,
+        padding: 10,
     },
     header: {
         flexDirection: "row",
         justifyContent: "flex-end",
         alignItems: "center",
-        marginTop: 10,
-        marginBottom: 20,
-    },
-    settingsButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "rgba(187, 134, 252, 0.1)",
-        shadowColor: "#bb86fc",
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.3,
-        shadowRadius: 5,
+        marginTop: 15,
+        marginBottom: 15,
     },
     content: {
         flex: 1,
-        justifyContent: "center",
-    },
-    responseContainer: {
-        width: "100%",
-        paddingHorizontal: 10,
-    },
-    responseText: {
-        color: "#bb86fc",
-        fontSize: 18,
-        lineHeight: 26,
-        textAlign: "left",
-        textShadowColor: "#bb86fc",
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 10,
-    },
-    listeningText: {
-        color: "#bb86fc",
-        marginTop: 20,
-        fontSize: 16,
-        textAlign: "left",
-        textShadowColor: "#bb86fc",
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 5,
     },
     buttonContainer: {
-        alignItems: "center",
-        marginBottom: 40,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: Platform.OS === 'ios' ? 25 : 15,
+        marginBottom: Platform.OS === 'ios' ? 25 : 15,
+        gap: 10,
+        paddingHorizontal: 15,
     },
     buttonOuter: {
-        width: 70,
-        height: 70,
-        borderRadius: 35,
-        shadowColor: "#bb86fc",
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.8,
-        shadowRadius: 15,
-        elevation: 10,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
     },
     gradient: {
         width: "100%",
@@ -147,11 +196,60 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     buttonInner: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        backgroundColor: "rgba(0, 0, 0, 0.3)",
+        width: 50,
+        height: 50,
+        borderRadius: 25,
         justifyContent: "center",
         alignItems: "center",
+    },
+    textInputContainer: {
+        flex: 1,
+    },
+    textInput: {
+        height: 50,
+        borderRadius: 25,
+        paddingHorizontal: 20,
+        fontSize: 16,
+    },
+    messagesWrapper: {
+        flex: 1,
+        marginHorizontal: -15,
+    },
+    messagesList: {
+        flex: 1,
+    },
+    messagesContent: {
+        padding: 20,
+        gap: 5,
+    },
+    messageContainer: {
+        maxWidth: '80%',
+        padding: 12,
+        borderRadius: 16,
+    },
+    userMessage: {
+        alignSelf: 'flex-end',
+        borderBottomRightRadius: 4,
+    },
+    aiMessage: {
+        alignSelf: 'flex-start',
+        borderBottomLeftRadius: 4,
+        borderWidth: 1,
+    },
+    messageText: {
+        fontSize: 16,
+        lineHeight: 22,
+    },
+    ListeningContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: Platform.OS === 'ios' ? 25 : 15,
+        gap: 10,
+        paddingHorizontal: 15,
+    },
+    listeningText: {
+        fontSize: 16,
+        alignSelf: 'center',
     },
 })

@@ -1,8 +1,12 @@
 "use client"
 
-import React from "react"
-import { SafeAreaView, StyleSheet, Text, View, TouchableOpacity, Switch, ScrollView } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
+import React from "react"
+import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native"
+import AppHeader from "../components/AppHeader"
+import SettingItem from "../components/SettingItem"
+import SettingSwitch from "../components/SettingSwitch"
+import { useTheme } from '../context/ThemeContext'
 
 interface SettingsScreenProps {
     onBack: () => void
@@ -10,92 +14,63 @@ interface SettingsScreenProps {
 
 const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
     const [voiceEnabled, setVoiceEnabled] = React.useState(true)
-    const [darkMode, setDarkMode] = React.useState(true)
     const [notifications, setNotifications] = React.useState(true)
+    const { theme, colors, toggleTheme } = useTheme();
 
     return (
-        <SafeAreaView style={styles.container}>
-            {/* Header with back button */}
-            <View style={styles.header}>
-                <TouchableOpacity style={styles.backButton} onPress={onBack}>
-                    <Ionicons name="arrow-back" size={24} color="#bb86fc" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Settings</Text>
-                <View style={{ width: 44 }} />
-            </View>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+            <AppHeader title="Settings" onBack={onBack} />
 
             <ScrollView style={styles.content}>
                 {/* Voice Settings */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Voice Assistant</Text>
-
-                    <View style={styles.settingItem}>
-                        <View style={styles.settingInfo}>
-                            <Ionicons name="mic" size={22} color="#bb86fc" style={styles.settingIcon} />
-                            <Text style={styles.settingText}>Voice Response</Text>
-                        </View>
-                        <Switch
-                            trackColor={{ false: "#3e3e3e", true: "rgba(187, 134, 252, 0.4)" }}
-                            thumbColor={voiceEnabled ? "#bb86fc" : "#f4f3f4"}
-                            onValueChange={() => setVoiceEnabled(!voiceEnabled)}
-                            value={voiceEnabled}
-                        />
-                    </View>
-
-                    <View style={styles.settingItem}>
-                        <View style={styles.settingInfo}>
-                            <Ionicons name="moon" size={22} color="#bb86fc" style={styles.settingIcon} />
-                            <Text style={styles.settingText}>Dark Mode</Text>
-                        </View>
-                        <Switch
-                            trackColor={{ false: "#3e3e3e", true: "rgba(187, 134, 252, 0.4)" }}
-                            thumbColor={darkMode ? "#bb86fc" : "#f4f3f4"}
-                            onValueChange={() => setDarkMode(!darkMode)}
-                            value={darkMode}
-                        />
-                    </View>
-
-                    <View style={styles.settingItem}>
-                        <View style={styles.settingInfo}>
-                            <Ionicons name="notifications" size={22} color="#bb86fc" style={styles.settingIcon} />
-                            <Text style={styles.settingText}>Notifications</Text>
-                        </View>
-                        <Switch
-                            trackColor={{ false: "#3e3e3e", true: "rgba(187, 134, 252, 0.4)" }}
-                            thumbColor={notifications ? "#bb86fc" : "#f4f3f4"}
-                            onValueChange={() => setNotifications(!notifications)}
-                            value={notifications}
-                        />
-                    </View>
+                    <Text style={[styles.sectionTitle, { color: colors.accent }]}>Voice Assistant</Text>
+                    
+                    <SettingSwitch
+                        icon="mic"
+                        title="Voice Response"
+                        value={voiceEnabled}
+                        onValueChange={setVoiceEnabled}
+                    />
+                    
+                    <SettingSwitch
+                        icon="moon"
+                        title="Dark Mode"
+                        value={theme === 'dark'}
+                        onValueChange={toggleTheme}
+                    />
+                    
+                    <SettingSwitch
+                        icon="notifications"
+                        title="Notifications"
+                        value={notifications}
+                        onValueChange={setNotifications}
+                    />
                 </View>
 
                 {/* About Section */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>About</Text>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>About</Text>
 
-                    <TouchableOpacity style={styles.settingItem}>
-                        <View style={styles.settingInfo}>
-                            <Ionicons name="information-circle" size={22} color="#bb86fc" style={styles.settingIcon} />
-                            <Text style={styles.settingText}>App Version</Text>
-                        </View>
-                        <Text style={styles.versionText}>1.0.0</Text>
-                    </TouchableOpacity>
+                    <SettingItem
+                        icon="information-circle"
+                        title="App Version"
+                        rightElement={<Text style={[styles.versionText, { color: colors.text }]}>1.0.0</Text>}
+                    />
 
-                    <TouchableOpacity style={styles.settingItem}>
-                        <View style={styles.settingInfo}>
-                            <Ionicons name="document-text" size={22} color="#bb86fc" style={styles.settingIcon} />
-                            <Text style={styles.settingText}>Privacy Policy</Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color="#bb86fc" />
-                    </TouchableOpacity>
+                    <SettingItem
+                        icon="document-text"
+                        title="Privacy Policy"
+                        rightElement={<Ionicons name="chevron-forward" size={20} color={colors.text} />}
+                        onPress={() => {}}
+                    />
 
-                    <TouchableOpacity style={styles.settingItem}>
-                        <View style={styles.settingInfo}>
-                            <Ionicons name="help-circle" size={22} color="#bb86fc" style={styles.settingIcon} />
-                            <Text style={styles.settingText}>Help & Support</Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color="#bb86fc" />
-                    </TouchableOpacity>
+                    <SettingItem
+                        icon="help-circle"
+                        title="Help & Support"
+                        rightElement={<Ionicons name="chevron-forward" size={20} color={colors.text} />}
+                        onPress={() => {}}
+                    />
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -105,31 +80,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#000000",
         padding: 20,
-    },
-    header: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginTop: 10,
-        marginBottom: 30,
-    },
-    backButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "rgba(187, 134, 252, 0.1)",
-    },
-    headerTitle: {
-        color: "#bb86fc",
-        fontSize: 20,
-        fontWeight: "600",
-        textShadowColor: "#bb86fc",
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 5,
     },
     content: {
         flex: 1,
@@ -138,37 +89,13 @@ const styles = StyleSheet.create({
         marginBottom: 30,
     },
     sectionTitle: {
-        color: "#bb86fc",
         fontSize: 18,
         fontWeight: "600",
         marginBottom: 15,
-        textShadowColor: "#bb86fc",
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 3,
-    },
-    settingItem: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: "rgba(187, 134, 252, 0.2)",
-    },
-    settingInfo: {
-        flexDirection: "row",
-        alignItems: "center",
-    },
-    settingIcon: {
-        marginRight: 12,
-    },
-    settingText: {
-        color: "#ffffff",
-        fontSize: 16,
     },
     versionText: {
-        color: "#bb86fc",
         fontSize: 14,
     },
-})
+});
 
-export default SettingsScreen
+export default SettingsScreen;

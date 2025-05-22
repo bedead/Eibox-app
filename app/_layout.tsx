@@ -1,10 +1,11 @@
 import { Stack } from 'expo-router';
 import React from 'react';
 import { StatusBar } from 'react-native';
+import { ThemeProvider } from '../context/ThemeContext';
 
-export default function RootLayout(): React.JSX.Element {
+export default function Layout(): React.JSX.Element {
     return (
-        <>
+        <ThemeProvider>
             <StatusBar barStyle="light-content" backgroundColor="#000" />
             <Stack
                 screenOptions={{
@@ -16,6 +17,6 @@ export default function RootLayout(): React.JSX.Element {
                 <Stack.Screen name="index" />
                 <Stack.Screen name="settings" />
             </Stack>
-        </>
+        </ThemeProvider>
     );
-} 
+}
