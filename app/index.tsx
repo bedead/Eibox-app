@@ -1,10 +1,12 @@
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
-import { useEffect, useState } from "react"
-import { KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
+import { useEffect, useRef, useState } from "react"
+import { Alert, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
 import IconButton from '../components/IconButton'
 import { useTheme } from '../context/ThemeContext'
 import SettingsScreen from "./settings"
+import { useCallback } from "react"
+import { Menu, MenuOptions, MenuOption, MenuTrigger } from 'react-native-popup-menu'
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -14,24 +16,75 @@ interface Message {
     sender: 'user' | 'ai';
 }
 
+// Generate a random thread_id for the session
+function getThreadId() {
+    // You may want to persist this in AsyncStorage for real sessions
+    return Math.random().toString(36).slice(2, 12);
+}
+
 export default function App() {
     const [isListening, setIsListening] = useState(false)
     const [showSettings, setShowSettings] = useState(false)
     const { colors, theme } = useTheme();
     const [textInput, setTextInput] = useState('')
-    const [messages, setMessages] = useState<Message[]>([
-        { id: '1', text: "Hello! How can I help you today?", sender: 'ai' }
-    ]);
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [wsConnected, setWsConnected] = useState(false);
+    const [wsError, setWsError] = useState<string | null>(null);
+    const wsRef = useRef<WebSocket | null>(null);
+    const scrollViewRef = useRef<ScrollView>(null);
+    const threadIdRef = useRef<string>(getThreadId());
+    const [wsKey, setWsKey] = useState(0);
 
-    // Simulate listening state
+    // WebSocket connection
     useEffect(() => {
-        if (isListening) {
-            const timer = setTimeout(() => {
-                setIsListening(false)
-            }, 3000)
-            return () => clearTimeout(timer)
-        }
-    }, [isListening])
+        const ws = new WebSocket(`ws://192.168.43.115:8000/test/ws-chatbot/${threadIdRef.current}`);
+        wsRef.current = ws;
+
+        ws.onopen = () => {
+            setWsConnected(true);
+            setWsError(null);
+            ws.send("hi");
+        };
+        ws.onclose = () => {
+            setWsConnected(false);
+        };
+        ws.onerror = (e) => {
+            setWsError("WebSocket error");
+        };
+
+
+        ws.onmessage = (event) => {
+            // Assume server sends: { id, text }
+            try {
+                const data = event.data;
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        id: data.id || Date.now().toString(),
+                        text: data,
+                        sender: 'ai'
+                    }
+                ]);
+            } catch (e) {
+                // fallback: treat as plain text
+                console.error("Error parsing message:", e);
+            }
+        };
+
+        return () => {
+            ws.close();
+        };
+    }, [wsKey]);
+
+    // Reconnect function
+    const handleReconnect = useCallback(() => {
+        setWsKey(k => k + 1);
+    }, []);
+
+    // Scroll to bottom on new message
+    useEffect(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, [messages]);
 
     const handlePress = () => {
         setIsListening(true)
@@ -42,23 +95,17 @@ export default function App() {
     }
 
     const handleSendText = () => {
-        if (textInput.trim()) {
+        if (textInput.trim() && wsRef.current && wsConnected) {
             const newMessage: Message = {
                 id: Date.now().toString(),
                 text: textInput,
                 sender: 'user'
             };
             setMessages(prev => [...prev, newMessage]);
-            // Simulate AI response
-            setTimeout(() => {
-                const aiResponse: Message = {
-                    id: (Date.now() + 1).toString(),
-                    text: `You said: ${textInput}`,
-                    sender: 'ai'
-                };
-                setMessages(prev => [...prev, aiResponse]);
-            }, 1000);
+            wsRef.current.send(textInput);
             setTextInput('');
+        } else if (!wsConnected) {
+            Alert.alert("Not connected", "Unable to send message: not connected to server.");
         }
     }
 
@@ -75,7 +122,15 @@ export default function App() {
             <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
                 {/* Fixed Header */}
                 <View style={styles.header}>
-                    <View style={{ flex: 1 }} />
+                    <Menu>
+                        <MenuTrigger>
+                            <Ionicons name="ellipsis-vertical" size={24} color={colors.text} />
+                        </MenuTrigger>
+                        <MenuOptions>
+                            <MenuOption onSelect={handleReconnect} text="Reconnect to server" />
+                        </MenuOptions>
+                    </Menu>
+                    {/* <View style={{ flex: 1 }} /> */}
                     <IconButton name="settings" onPress={toggleSettings} />
                 </View>
 
@@ -85,6 +140,7 @@ export default function App() {
                         style={styles.messagesList}
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={styles.messagesContent}
+                        ref={scrollViewRef}
                     >
                         {messages.map((message) => (
                             <View
@@ -112,16 +168,22 @@ export default function App() {
                 {/* Listening Indicator */}
                 {isListening && (
                     <View style={[
-                        // styles.messageContainer,
-                        // styles.aiMessage,
                         styles.ListeningContainer,
                         {
-                            backgroundColor: colors.background,
+                            backgroundColor: "transparent",
                             borderColor: colors.surface
                         }
                     ]}>
                         <Text style={[styles.listeningText, { color: colors.text }]}>
                             Listening...
+                        </Text>
+                    </View>
+                )}
+                {/* WebSocket status */}
+                {!wsConnected && (
+                    <View style={{ alignItems: 'center', marginBottom: 8, backgroundColor: "transparent" }}>
+                        <Text style={{ color: 'red' }}>
+                            {wsError ? wsError : "Connecting to server..."}
                         </Text>
                     </View>
                 )}
@@ -138,8 +200,20 @@ export default function App() {
                             placeholder="Type a message..."
                             placeholderTextColor={colors.tabIconDefault}
                             onSubmitEditing={handleSendText}
+                            returnKeyType="send"
+                            editable={wsConnected}
                         />
                     </View>
+                    <TouchableOpacity onPress={handleSendText} style={{
+                        width: 50,
+                        height: 50,
+                        borderRadius: 25,
+                        backgroundColor: colors.surface,
+                        justifyContent: "center",
+                        alignItems: "center",
+                    }}>
+                        <Ionicons name="send" size={20} color={colors.text} />
+                    </TouchableOpacity>
 
                     <TouchableOpacity activeOpacity={0.7} onPress={handlePress} style={styles.buttonOuter}>
                         <LinearGradient
@@ -154,7 +228,7 @@ export default function App() {
                         </LinearGradient>
                     </TouchableOpacity>
                 </View>
-            </SafeAreaView>
+            </SafeAreaView >
         </KeyboardAvoidingView >
     )
 }
@@ -165,23 +239,25 @@ const styles = StyleSheet.create({
         padding: 10,
     },
     header: {
+        backgroundColor: 'transparent',
         flexDirection: "row",
-        justifyContent: "flex-end",
+        justifyContent: "space-between",
         alignItems: "center",
-        marginTop: 15,
-        marginBottom: 15,
+        marginTop: 20,
+        marginBottom: 10,
     },
     content: {
         flex: 1,
     },
     buttonContainer: {
+        backgroundColor: 'transparent',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         marginTop: Platform.OS === 'ios' ? 25 : 15,
         marginBottom: Platform.OS === 'ios' ? 25 : 15,
         gap: 10,
-        paddingHorizontal: 15,
+        // paddingHorizontal: 15,
     },
     buttonOuter: {
         width: 60,
@@ -207,7 +283,7 @@ const styles = StyleSheet.create({
     },
     textInput: {
         height: 50,
-        borderRadius: 25,
+        borderRadius: 24,
         paddingHorizontal: 20,
         fontSize: 16,
     },
@@ -220,7 +296,7 @@ const styles = StyleSheet.create({
     },
     messagesContent: {
         padding: 20,
-        gap: 5,
+        gap: 10,
     },
     messageContainer: {
         maxWidth: '80%',
@@ -229,11 +305,11 @@ const styles = StyleSheet.create({
     },
     userMessage: {
         alignSelf: 'flex-end',
-        borderBottomRightRadius: 4,
+        borderBottomRightRadius: 0,
     },
     aiMessage: {
         alignSelf: 'flex-start',
-        borderBottomLeftRadius: 4,
+        borderBottomLeftRadius: 0,
         borderWidth: 1,
     },
     messageText: {
