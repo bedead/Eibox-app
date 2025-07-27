@@ -7,7 +7,7 @@ import { useTheme } from '../context/ThemeContext'
 import SettingsScreen from "./settings"
 import { useCallback } from "react"
 import { Menu, MenuOptions, MenuOption, MenuTrigger } from 'react-native-popup-menu'
-
+import { WEBSOCKET_CHAT_URL_V1 } from '@env'
 type IconName = keyof typeof Ionicons.glyphMap;
 
 interface Message {
@@ -41,7 +41,7 @@ export default function App() {
     // WebSocket connection
     useEffect(() => {
         console.log("WebSocket useEffect triggered with key:", wsKey);
-        const ws = new WebSocket(`ws://192.168.43.115:8000/ws/chatbot/v1/satyam/${threadIdRef.current}`);
+        const ws = new WebSocket(`${WEBSOCKET_CHAT_URL_V1}/satyam/${threadIdRef.current}`);
         wsRef.current = ws;
 
         ws.onopen = () => {
