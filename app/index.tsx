@@ -14,12 +14,14 @@ interface Message {
     id: string;
     text: string;
     sender: 'user' | 'ai';
+    isStreaming?: boolean;
 }
 
 // Generate a random thread_id for the session
 function getThreadId() {
     // You may want to persist this in AsyncStorage for real sessions
-    return Math.random().toString(36).slice(2, 12);
+    // return Math.random().toString(36).slice(2, 12);
+    return "test";
 }
 
 export default function App() {
@@ -34,10 +36,12 @@ export default function App() {
     const scrollViewRef = useRef<ScrollView>(null);
     const threadIdRef = useRef<string>(getThreadId());
     const [wsKey, setWsKey] = useState(0);
+    const currentStreamingMessageId = useRef<string | null>(null);
 
     // WebSocket connection
     useEffect(() => {
-        const ws = new WebSocket(`ws://192.168.43.115:8000/test/ws-chatbot/${threadIdRef.current}`);
+        console.log("WebSocket useEffect triggered with key:", wsKey);
+        const ws = new WebSocket(`ws://192.168.43.115:8000/ws/chatbot/v1/satyam/${threadIdRef.current}`);
         wsRef.current = ws;
 
         ws.onopen = () => {
@@ -45,33 +49,70 @@ export default function App() {
             setWsError(null);
             ws.send("hi");
         };
+
         ws.onclose = () => {
             setWsConnected(false);
+            // Mark any streaming message as complete
+            if (currentStreamingMessageId.current) {
+                setMessages(prev => prev.map(msg =>
+                    msg.id === currentStreamingMessageId.current
+                        ? { ...msg, isStreaming: false }
+                        : msg
+                ));
+                currentStreamingMessageId.current = null;
+            }
         };
+
         ws.onerror = (e) => {
             setWsError("WebSocket error");
+            // Mark any streaming message as complete
+            if (currentStreamingMessageId.current) {
+                setMessages(prev => prev.map(msg =>
+                    msg.id === currentStreamingMessageId.current
+                        ? { ...msg, isStreaming: false }
+                        : msg
+                ));
+                currentStreamingMessageId.current = null;
+            }
         };
 
-
         ws.onmessage = (event) => {
-            // Assume server sends: { id, text }
-            try {
-                const data = event.data;
-                setMessages(prev => [
-                    ...prev,
-                    {
-                        id: data.id || Date.now().toString(),
-                        text: data,
-                        sender: 'ai'
-                    }
-                ]);
-            } catch (e) {
-                // fallback: treat as plain text
-                console.error("Error parsing message:", e);
+            const chunk = event.data;
+            console.log("Received chunk:", chunk);
+
+            const cleanChunk = chunk.replace(/\n+$/, '');
+
+            if (currentStreamingMessageId.current) {
+                // Continue existing streaming message - append chunk
+                setMessages(prev => prev.map(msg =>
+                    msg.id === currentStreamingMessageId.current
+                        ? { ...msg, text: msg.text + cleanChunk }
+                        : msg
+                ));
+            } else {
+                // Start new streaming message
+                const newMessageId = Date.now().toString();
+                currentStreamingMessageId.current = newMessageId;
+
+                const newMessage: Message = {
+                    id: newMessageId,
+                    text: chunk,
+                    sender: 'ai',
+                    isStreaming: true
+                };
+
+                setMessages(prev => [...prev, newMessage]);
             }
         };
 
         return () => {
+            if (currentStreamingMessageId.current) {
+                setMessages(prev => prev.map(msg =>
+                    msg.id === currentStreamingMessageId.current
+                        ? { ...msg, isStreaming: false }
+                        : msg
+                ));
+            }
             ws.close();
         };
     }, [wsKey]);
@@ -81,9 +122,11 @@ export default function App() {
         setWsKey(k => k + 1);
     }, []);
 
-    // Scroll to bottom on new message
+    // Scroll to bottom on new message or message updates
     useEffect(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
+        setTimeout(() => {
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 100);
     }, [messages]);
 
     const handlePress = () => {
@@ -96,12 +139,23 @@ export default function App() {
 
     const handleSendText = () => {
         if (textInput.trim() && wsRef.current && wsConnected) {
+            // Mark current streaming message as complete before sending new message
+            if (currentStreamingMessageId.current) {
+                setMessages(prev => prev.map(msg =>
+                    msg.id === currentStreamingMessageId.current
+                        ? { ...msg, isStreaming: false }
+                        : msg
+                ));
+                currentStreamingMessageId.current = null;
+            }
+
             const newMessage: Message = {
                 id: Date.now().toString(),
                 text: textInput,
                 sender: 'user'
             };
             setMessages(prev => [...prev, newMessage]);
+
             wsRef.current.send(textInput);
             setTextInput('');
         } else if (!wsConnected) {
@@ -127,10 +181,9 @@ export default function App() {
                             <Ionicons name="ellipsis-vertical" size={24} color={colors.text} />
                         </MenuTrigger>
                         <MenuOptions>
-                            <MenuOption onSelect={handleReconnect} text="Reconnect to server" />
+                            <MenuOption style={{ padding: 5 }} onSelect={handleReconnect} text="Reconnect to server" />
                         </MenuOptions>
                     </Menu>
-                    {/* <View style={{ flex: 1 }} /> */}
                     <IconButton name="settings" onPress={toggleSettings} />
                 </View>
 
@@ -165,6 +218,7 @@ export default function App() {
                         ))}
                     </ScrollView>
                 </View>
+
                 {/* Listening Indicator */}
                 {isListening && (
                     <View style={[
@@ -179,6 +233,7 @@ export default function App() {
                         </Text>
                     </View>
                 )}
+
                 {/* WebSocket status */}
                 {!wsConnected && (
                     <View style={{ alignItems: 'center', marginBottom: 8, backgroundColor: "transparent" }}>
@@ -187,6 +242,7 @@ export default function App() {
                         </Text>
                     </View>
                 )}
+
                 {/* Fixed Input Area */}
                 <View style={styles.buttonContainer}>
                     <View style={styles.textInputContainer}>
@@ -236,14 +292,13 @@ export default function App() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 10,
+        padding: 20,
     },
     header: {
         backgroundColor: 'transparent',
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        marginTop: 20,
         marginBottom: 10,
     },
     content: {
@@ -257,7 +312,6 @@ const styles = StyleSheet.create({
         marginTop: Platform.OS === 'ios' ? 25 : 15,
         marginBottom: Platform.OS === 'ios' ? 25 : 15,
         gap: 10,
-        // paddingHorizontal: 15,
     },
     buttonOuter: {
         width: 60,
