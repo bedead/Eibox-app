@@ -14,8 +14,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({ title, onBack }) => {
     return (
         <View style={styles.header}>
             {onBack && (
-                <IconButton 
-                    name="arrow-back" 
+                <IconButton
+                    name="arrow-back"
                     onPress={onBack}
                 />
             )}
@@ -30,10 +30,10 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: 30,
+        padding: 15,
     },
     headerTitle: {
-        fontSize: 20,
+        fontSize: 24,
         fontWeight: "600",
         textAlign: "center",
         flex: 1,

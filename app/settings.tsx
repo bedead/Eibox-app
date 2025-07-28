@@ -1,101 +1,139 @@
-"use client"
+import AppHeader from '@/components/AppHeader';
+import SettingItem from '@/components/SettingItem';
+import SettingSwitch from '@/components/SettingSwitch';
+import { ThemedText } from '@/components/ThemedText';
+import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
+import { router } from 'expo-router';
+import React from "react";
+import { ScrollView, StyleSheet, View, Linking } from 'react-native';
+import Constants from 'expo-constants';
 
-import { Ionicons } from "@expo/vector-icons"
-import React from "react"
-import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native"
-import AppHeader from "../components/AppHeader"
-import SettingItem from "../components/SettingItem"
-import SettingSwitch from "../components/SettingSwitch"
-import { useTheme } from '../context/ThemeContext'
-
-interface SettingsScreenProps {
-    onBack: () => void
-}
-
-const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
-    const [voiceEnabled, setVoiceEnabled] = React.useState(true)
-    const [notifications, setNotifications] = React.useState(true)
+export default function SettingsScreen() {
+    const [voiceEnabled, setVoiceEnabled] = React.useState(true);
+    const [notifications, setNotifications] = React.useState(true);
     const { theme, colors, toggleTheme } = useTheme();
+    const { user, logout } = useAuth();
+
+    const logoutUser = () => {
+        logout();
+        router.push('/auth');
+        console.log('Logging out user:', user?.username);
+    }
+
+    const handleBack = () => {
+        router.back();
+    };
+
+    const openPrivacyPolicy = () => {
+        Linking.openURL('https://your-privacy-policy-url.com');
+    };
+
+    const openTerms = () => {
+        Linking.openURL('https://your-terms-url.com');
+    };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-            <AppHeader title="Settings" onBack={onBack} />
-
-            <ScrollView style={styles.content}>
-                {/* Voice Settings */}
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
+            <AppHeader title="Settings" onBack={handleBack} />
+            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+                {/* Account Section */}
+                <ThemedText type='subtitle' style={styles.sectionHeader}>Account</ThemedText>
                 <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.accent }]}>Voice Assistant</Text>
-                    
-                    <SettingSwitch
-                        icon="mic"
-                        title="Voice Response"
-                        value={voiceEnabled}
-                        onValueChange={setVoiceEnabled}
+                    <SettingItem
+                        icon="person-outline"
+                        title="Name"
+                        subtitle={user?.username || 'Not set'}
+                        showArrow={false}
                     />
-                    
+                </View>
+
+                {/* Preferences Section */}
+                <ThemedText type='subtitle' style={styles.sectionHeader}>Preferences</ThemedText>
+                <View style={styles.section}>
                     <SettingSwitch
-                        icon="moon"
+                        icon="moon-outline"
                         title="Dark Mode"
+                        subtitle="Switch between light and dark themes"
                         value={theme === 'dark'}
                         onValueChange={toggleTheme}
                     />
-                    
                     <SettingSwitch
-                        icon="notifications"
+                        icon="mic-outline"
+                        title="Voice Input"
+                        subtitle="Enable voice commands and dictation"
+                        value={voiceEnabled}
+                        onValueChange={setVoiceEnabled}
+                    />
+                    <SettingSwitch
+                        icon="notifications-outline"
                         title="Notifications"
+                        subtitle="Receive chat and update notifications"
                         value={notifications}
                         onValueChange={setNotifications}
                     />
                 </View>
 
-                {/* About Section */}
+                {/* Help & Legal Section */}
+                <ThemedText type='subtitle' style={styles.sectionHeader}>Help & Legal</ThemedText>
                 <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>About</Text>
-
                     <SettingItem
-                        icon="information-circle"
-                        title="App Version"
-                        rightElement={<Text style={[styles.versionText, { color: colors.text }]}>1.0.0</Text>}
-                    />
-
-                    <SettingItem
-                        icon="document-text"
+                        icon="shield-outline"
                         title="Privacy Policy"
-                        rightElement={<Ionicons name="chevron-forward" size={20} color={colors.text} />}
-                        onPress={() => {}}
+                        onPress={openPrivacyPolicy}
                     />
-
                     <SettingItem
-                        icon="help-circle"
-                        title="Help & Support"
-                        rightElement={<Ionicons name="chevron-forward" size={20} color={colors.text} />}
-                        onPress={() => {}}
+                        icon="document-text-outline"
+                        title="Terms of Service"
+                        onPress={openTerms}
+                    />
+                    <SettingItem
+                        icon="information-circle-outline"
+                        title="App Version"
+                        subtitle={Constants.expoConfig?.version || '1.0.0'}
+                        showArrow={false}
                     />
                 </View>
+
+                {/* Account Actions Section */}
+                <ThemedText type='subtitle' style={styles.sectionHeader}>Account Actions</ThemedText>
+                <View style={styles.section}>
+                    <SettingItem
+                        icon="log-out-outline"
+                        title="Logout"
+                        onPress={logoutUser}
+                        textColor={colors.accent}
+                    />
+                </View>
+
+                {/* Bottom Spacing */}
+                <View style={styles.bottomPadding} />
             </ScrollView>
-        </SafeAreaView>
-    )
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 20,
     },
     content: {
         flex: 1,
     },
+    sectionHeader: {
+        paddingHorizontal: 20,
+        paddingTop: 24,
+        paddingBottom: 8,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        fontSize: 13,
+    },
     section: {
-        marginBottom: 30,
+        borderRadius: 12,
+        overflow: 'hidden',
+        marginHorizontal: 16,
     },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: "600",
-        marginBottom: 15,
-    },
-    versionText: {
-        fontSize: 14,
-    },
+    bottomPadding: {
+        height: 40,
+    }
 });
-
-export default SettingsScreen;

@@ -1,48 +1,97 @@
-import { Ionicons } from "@expo/vector-icons";
+// Update file: components/SettingItem.tsx
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useTheme } from '../context/ThemeContext';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ThemedText } from './ThemedText';
+import { useTheme } from '@/context/ThemeContext';
 
 interface SettingItemProps {
-    icon: keyof typeof Ionicons.glyphMap;
+    icon?: keyof typeof Ionicons.glyphMap;
     title: string;
-    rightElement?: React.ReactNode;
+    subtitle?: string;
     onPress?: () => void;
+    showArrow?: boolean;
+    textColor?: string;
 }
 
-const SettingItem: React.FC<SettingItemProps> = ({ icon, title, rightElement, onPress }) => {
+export default function SettingItem({
+    icon,
+    title,
+    subtitle,
+    onPress,
+    showArrow = true,
+    textColor
+}: SettingItemProps) {
     const { colors } = useTheme();
-    const Container = onPress ? TouchableOpacity : View;
-    
+
     return (
-        <Container style={[styles.settingItem, { borderBottomColor: colors.border }]} onPress={onPress}>
-            <View style={styles.settingInfo}>
-                <Ionicons name={icon} size={22} color={colors.text} style={styles.settingIcon} />
-                <Text style={[styles.settingText, { color: colors.text }]}>{title}</Text>
+        <TouchableOpacity
+            style={[
+                styles.container,
+                { backgroundColor: colors.surface }
+            ]}
+            onPress={onPress}
+            disabled={!onPress}
+        >
+            <View style={styles.content}>
+                {icon && (
+                    <View style={styles.iconContainer}>
+                        <Ionicons
+                            name={icon}
+                            size={22}
+                            color={textColor || colors.text}
+                        />
+                    </View>
+                )}
+                <View style={styles.textContainer}>
+                    <ThemedText style={[styles.title, textColor && { color: textColor }]}>
+                        {title}
+                    </ThemedText>
+                    {subtitle && (
+                        <ThemedText type="default" style={styles.subtitle}>
+                            {subtitle}
+                        </ThemedText>
+                    )}
+                </View>
+                {showArrow && onPress && (
+                    <Ionicons
+                        name="chevron-forward"
+                        size={20}
+                        color={colors.text}
+                        style={styles.arrow}
+                    />
+                )}
             </View>
-            {rightElement}
-        </Container>
+        </TouchableOpacity>
     );
-};
+}
 
 const styles = StyleSheet.create({
-    settingItem: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
+    container: {
         paddingVertical: 12,
-        borderBottomWidth: 1,
+        paddingHorizontal: 16,
     },
-    settingInfo: {
-        flexDirection: "row",
-        alignItems: "center",
+    content: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
-    settingIcon: {
+    iconContainer: {
+        width: 32,
+        alignItems: 'center',
         marginRight: 12,
     },
-    settingText: {
+    textContainer: {
+        flex: 1,
+    },
+    title: {
         fontSize: 16,
     },
+    subtitle: {
+        marginTop: 2,
+        opacity: 0.7,
+    },
+    arrow: {
+        marginLeft: 8,
+        opacity: 0.5,
+    }
 });
-
-export default SettingItem;
