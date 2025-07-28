@@ -169,22 +169,27 @@ export default function ChatScreen() {
             <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
                 {/* Fixed Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity activeOpacity={0.7} style={{
-                        // width: 44,
-                        // height: 44,
-                        borderRadius: 22,
-                        justifyContent: "center",
-                        alignItems: "center",
-                    }}>
-                        <Menu>
-                            <MenuTrigger>
-                                <Ionicons name="ellipsis-vertical" size={24} color={colors.text} />
-                            </MenuTrigger>
-                            <MenuOptions>
-                                <MenuOption style={{ padding: 5 }} onSelect={handleReconnect} text="Reconnect to server" />
-                            </MenuOptions>
-                        </Menu>
-                    </TouchableOpacity>
+                    <Menu>
+                        <MenuTrigger customStyles={{
+                            TriggerTouchableComponent: TouchableOpacity,
+                            triggerTouchable: {
+                                activeOpacity: 0.7,
+                                style: {
+                                    width: 44,
+                                    height: 44,
+                                    borderRadius: 22,
+                                    backgroundColor: colors.surface, // or any color you use in IconButton
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                },
+                            },
+                        }}>
+                            <Ionicons name="ellipsis-vertical" size={24} color={colors.text} />
+                        </MenuTrigger>
+                        <MenuOptions>
+                            <MenuOption style={{ padding: 5 }} onSelect={handleReconnect} text="Reconnect to server" />
+                        </MenuOptions>
+                    </Menu>
                     <IconButton name="settings" onPress={navigateToSettings} />
                 </View>
 
@@ -278,7 +283,7 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 20,
+        padding: 15,
     },
     header: {
         backgroundColor: 'transparent',

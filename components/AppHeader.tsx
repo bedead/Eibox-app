@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import IconButton from './IconButton';
+import { Colors } from '@/constants/Colors';
 
 interface AppHeaderProps {
     title: string;
@@ -30,7 +31,8 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        padding: 15,
+        // padding: 15,
+        paddingBottom: 15,
     },
     headerTitle: {
         fontSize: 24,

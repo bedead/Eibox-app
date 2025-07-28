@@ -116,12 +116,13 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        padding: 15
     },
     content: {
         flex: 1,
     },
     sectionHeader: {
-        paddingHorizontal: 20,
+        // paddingHorizontal: 20,
         paddingTop: 24,
         paddingBottom: 8,
         textTransform: 'uppercase',
@@ -131,7 +132,7 @@ const styles = StyleSheet.create({
     section: {
         borderRadius: 12,
         overflow: 'hidden',
-        marginHorizontal: 16,
+        // marginHorizontal: 16,
     },
     bottomPadding: {
         height: 40,
