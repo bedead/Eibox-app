@@ -10,7 +10,7 @@ import { ScrollView, StyleSheet, View, Linking } from 'react-native';
 import Constants from 'expo-constants';
 
 export default function SettingsScreen() {
-    const [voiceEnabled, setVoiceEnabled] = React.useState(true);
+    const [voiceEnabled, setVoiceEnabled] = React.useState(false);
     const [notifications, setNotifications] = React.useState(true);
     const { theme, colors, toggleTheme } = useTheme();
     const { user, logout } = useAuth();
@@ -41,9 +41,21 @@ export default function SettingsScreen() {
                 <ThemedText type='subtitle' style={styles.sectionHeader}>Account</ThemedText>
                 <View style={styles.section}>
                     <SettingItem
+                        icon="person-circle-outline"
+                        title="Username"
+                        subtitle={user?.username || 'Not set'}
+                        showArrow={false}
+                    />
+                    <SettingItem
                         icon="person-outline"
                         title="Name"
-                        subtitle={user?.username || 'Not set'}
+                        subtitle={user?.full_name || 'Not set'}
+                        showArrow={false}
+                    />
+                    <SettingItem
+                        icon="mail-outline"
+                        title="Email"
+                        subtitle={user?.email || 'Not set'}
                         showArrow={false}
                     />
                 </View>
