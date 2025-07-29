@@ -15,9 +15,9 @@ export default function SettingsScreen() {
     const { theme, colors, toggleTheme } = useTheme();
     const { user, logout } = useAuth();
 
-    const logoutUser = () => {
-        logout();
-        router.push('/auth');
+    const logoutUser = async () => {
+        await logout();
+        router.replace('/');
         console.log('Logging out user:', user?.username);
     }
 

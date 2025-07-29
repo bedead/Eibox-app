@@ -17,7 +17,7 @@ export default function Index() {
 
     // If no user, redirect to auth page
     if (!user) {
-        return <Redirect href="/auth" />;
+        return <Redirect href="/register" />;
     }
 
     // If user exists, redirect to chat page

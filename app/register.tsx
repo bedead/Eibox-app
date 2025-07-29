@@ -1,12 +1,13 @@
-// Create file: app/auth.tsx
+// Create file: app/register.tsx
+import uuid from 'react-native-uuid';
 import { ThemedText } from '@/components/ThemedText';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
+    Alert,
     KeyboardAvoidingView,
     Platform,
     StyleSheet,
@@ -14,9 +15,11 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { USER_REGISTER_ROUTE } from '@env';
 
-export default function AuthScreen() {
+export default function RegisterScreen() {
     const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const { login } = useAuth();
@@ -24,24 +27,43 @@ export default function AuthScreen() {
 
     const handleContinue = async () => {
         if (!username.trim()) return;
+        if (!email.trim()) return;
+        if (!password.trim()) return;
 
         setLoading(true);
         try {
             // Create user object
             const userData = {
-                id: Date.now().toString(),
+                id: uuid.v4(),
+                account_created: new Date().toISOString(),
                 username: username.trim(),
+                full_name: null,
+                email: email.trim(),
                 password: password.trim()
             };
 
-            // Save to AsyncStorage
-            await AsyncStorage.setItem('user', JSON.stringify(userData));
+            // 1. Send POST request to backend
+            const response = await fetch(USER_REGISTER_ROUTE, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(userData),
+            });
 
-            // Update auth context
+            const data = await response.json();
+
+            if (!response.ok) {
+                console.error('Registration failed:', data);
+                Alert.alert('Registration Failed', data.detail || 'Please try again.');
+                return;
+            }
+
+            // 3. Update auth context
             await login(userData);
-            console.log('User loged in:', userData);
+            console.log('User logged in:', userData);
 
-            // Navigate to chat
+            // 4. Navigate to chat
             router.replace('/chat');
         } catch (error) {
             console.error('Error saving user:', error);
@@ -50,14 +72,19 @@ export default function AuthScreen() {
         }
     };
 
+
+    const navigateToLogin = () => {
+        router.replace('/login');
+    }
+
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={[styles.container, { backgroundColor: colors.background }]}
         >
             <View style={styles.content}>
-                <ThemedText style={styles.title}>Welcome to AmaAI</ThemedText>
-                <ThemedText style={styles.subtitle}>Enter your name and password to continue</ThemedText>
+                <ThemedText style={styles.title}>Welcome to Ama.AI</ThemedText>
+                <ThemedText style={styles.subtitle}>Register yourself.</ThemedText>
 
                 <View style={styles.form}>
                     <TextInput
@@ -69,15 +96,30 @@ export default function AuthScreen() {
                                 borderColor: colors.border,
                             },
                         ]}
-                        placeholder="Your name"
+                        placeholder="Your username"
                         placeholderTextColor={colors.tabIconDefault}
                         value={username}
                         onChangeText={setUsername}
                         autoFocus
-                        autoCapitalize="words"
                         textContentType='username'
                         returnKeyType="done"
-                        onSubmitEditing={handleContinue}
+                    />
+                    <TextInput
+                        style={[
+                            styles.input,
+                            {
+                                backgroundColor: colors.surface,
+                                color: colors.text,
+                                borderColor: colors.border,
+                            },
+                        ]}
+                        placeholder="Your email"
+                        placeholderTextColor={colors.tabIconDefault}
+                        value={email}
+                        onChangeText={setEmail}
+                        autoFocus
+                        textContentType='emailAddress'
+                        returnKeyType="done"
                     />
                     <TextInput
                         style={[
@@ -111,6 +153,11 @@ export default function AuthScreen() {
                             </ThemedText>
                         )}
                     </TouchableOpacity>
+                    <TouchableOpacity onPress={navigateToLogin}>
+                        <ThemedText style={{ color: colors.tint, textAlign: 'center' }}>
+                            Already have an account? Login
+                        </ThemedText>
+                    </TouchableOpacity>
                 </View>
             </View>
         </KeyboardAvoidingView>
@@ -133,7 +180,7 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     subtitle: {
-        fontSize: 16,
+        fontSize: 20,
         textAlign: 'center',
         marginBottom: 32,
         opacity: 0.7,

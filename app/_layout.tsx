@@ -20,7 +20,8 @@ export default function RootLayout(): React.JSX.Element {
                     >
                         <Stack.Screen name="index" />
                         <Stack.Screen name="chat" />
-                        <Stack.Screen name="auth" />
+                        <Stack.Screen name="login" />
+                        <Stack.Screen name="register" />
                         <Stack.Screen name="settings" />
                     </Stack>
                 </MenuProvider>

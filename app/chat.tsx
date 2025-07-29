@@ -10,6 +10,7 @@ import { useTheme } from "@/context/ThemeContext"
 import IconButton from "@/components/IconButton"
 import { router } from "expo-router"
 import { Button } from "@react-navigation/elements"
+import { useAuth } from "@/context/AuthContext"
 type IconName = keyof typeof Ionicons.glyphMap;
 
 interface Message {
@@ -27,6 +28,7 @@ function getThreadId() {
 }
 
 export default function ChatScreen() {
+    const { isLoggingOut } = useAuth();
     const { colors, theme } = useTheme();
     const [textInput, setTextInput] = useState('')
     const [messages, setMessages] = useState<Message[]>([]);
@@ -121,6 +123,14 @@ export default function ChatScreen() {
     const handleReconnect = useCallback(() => {
         setWsKey(k => k + 1);
     }, []);
+
+    // Listen for logout flag to manually close WebSocket
+    useEffect(() => {
+        if (isLoggingOut && wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.close();
+            console.log("WebSocket closed due to logout");
+        }
+    }, [isLoggingOut]);
 
     // Scroll to bottom on new message or message updates
     useEffect(() => {

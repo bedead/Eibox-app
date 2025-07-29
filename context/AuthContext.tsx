@@ -4,13 +4,17 @@ import { createContext, useContext, useEffect, useState } from 'react';
 
 interface User {
     id: string;
+    account_created: string;
     username: string;
+    full_name: string | null | undefined;
+    email: string,
     password: string;
 }
 
 interface AuthContextType {
     user: User | null;
     loading: boolean;
+    isLoggingOut: boolean;
     login: (userData: User) => Promise<void>;
     logout: () => Promise<void>;
 }
@@ -20,6 +24,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
 
     useEffect(() => {
         loadUser();
@@ -49,17 +54,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const logout = async () => {
+        setIsLoggingOut(true); // trigger WS cleanup
         try {
             await AsyncStorage.removeItem('user');
             setUser(null);
-        } catch (error) {
-            console.error('Error removing user:', error);
-            throw error;
+        } finally {
+            setIsLoggingOut(false); // reset after cleanup
         }
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout }}>
+        <AuthContext.Provider value={{ user, loading, login, logout, isLoggingOut, }}>
             {children}
         </AuthContext.Provider>
     );
