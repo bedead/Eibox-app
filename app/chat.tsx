@@ -28,7 +28,7 @@ function getThreadId() {
 }
 
 export default function ChatScreen() {
-    const { isLoggingOut } = useAuth();
+    const { isLoggingOut, user } = useAuth();
     const { colors, theme } = useTheme();
     const [textInput, setTextInput] = useState('')
     const [messages, setMessages] = useState<Message[]>([]);
@@ -43,7 +43,7 @@ export default function ChatScreen() {
     // WebSocket connection
     useEffect(() => {
         console.log("WebSocket useEffect triggered with key:", wsKey);
-        const ws = new WebSocket(`${WEBSOCKET_CHAT_URL_V1}/satyam/${threadIdRef.current}`);
+        const ws = new WebSocket(`${WEBSOCKET_CHAT_URL_V1}/${user?.username}/${threadIdRef.current}`);
         wsRef.current = ws;
 
         ws.onopen = () => {
