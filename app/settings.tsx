@@ -63,7 +63,8 @@ const SettingsScreen = () => {
                 console.log('OAuth Success Response:', response);
 
                 const { code, scope } = response.params || {};
-
+                const user_id = user?.id;
+                const username = user?.username;
                 if (!code) {
                     console.error('No authorization code returned!');
                     return;
@@ -73,7 +74,7 @@ const SettingsScreen = () => {
                 fetch(GMAIL_OAUTH_CODE_ROUTE, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code, scope }),
+                    body: JSON.stringify({ user_id, username, code, scope }),
                 })
                     .then(res => res.json())
                     .then(data => console.log('Tokens exchanged & saved:', data))
