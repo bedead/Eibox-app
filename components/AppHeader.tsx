@@ -2,7 +2,6 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import IconButton from './IconButton';
-import { Colors } from '@/constants/Colors';
 
 interface AppHeaderProps {
     title: string;

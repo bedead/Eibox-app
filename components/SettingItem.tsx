@@ -9,6 +9,7 @@ interface SettingItemProps {
     icon?: keyof typeof Ionicons.glyphMap;
     title: string;
     subtitle?: string;
+    disabled?: boolean;
     onPress?: () => void;
     showArrow?: boolean;
     textColor?: string;
@@ -18,6 +19,7 @@ export default function SettingItem({
     icon,
     title,
     subtitle,
+    disabled,
     onPress,
     showArrow = true,
     textColor
@@ -31,7 +33,7 @@ export default function SettingItem({
                 { backgroundColor: colors.surface }
             ]}
             onPress={onPress}
-            disabled={!onPress}
+            disabled={disabled}
         >
             <View style={styles.content}>
                 {icon && (

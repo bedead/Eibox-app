@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState , useCallback } from "react"
 import { Alert, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
 
-import { useCallback } from "react"
+
 import { Menu, MenuOptions, MenuOption, MenuTrigger } from 'react-native-popup-menu'
 import { WEBSOCKET_CHAT_URL_V1 } from '@env'
 import { useTheme } from "@/context/ThemeContext"
@@ -49,7 +49,7 @@ export default function ChatScreen() {
         ws.onopen = () => {
             setWsConnected(true);
             setWsError(null);
-            ws.send("hi");
+            // ws.send("hi");
         };
 
         ws.onclose = () => {

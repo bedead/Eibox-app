@@ -5,15 +5,84 @@ import { ThemedText } from '@/components/ThemedText';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { router } from 'expo-router';
-import React from "react";
+import React, { useEffect } from "react";
 import { ScrollView, StyleSheet, View, Linking } from 'react-native';
 import Constants from 'expo-constants';
+import * as WebBrowser from 'expo-web-browser';
+import { GOOGLE_ANDROID_CLIENT_ID, GOOGLE_WEB_CLIENT_ID, SAVE_TOKENS_ROUTE } from '@env';
+import { useAuthRequest, makeRedirectUri, ResponseType } from 'expo-auth-session'
+// import { Prompt } from 'expo-auth-session';
 
-export default function SettingsScreen() {
+WebBrowser.maybeCompleteAuthSession();
+
+const REDIRECT_URI = makeRedirectUri({ scheme: "com.bedead.amaai" });
+
+const discovery = {
+    authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+    tokenEndpoint: "https://oauth2.googleapis.com/token"
+};
+const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.modify'];
+
+const SettingsScreen = () => {
+    const [accessToken, setAccessToken] = React.useState(null);
     const [voiceEnabled, setVoiceEnabled] = React.useState(false);
     const [notifications, setNotifications] = React.useState(true);
     const { theme, colors, toggleTheme } = useTheme();
     const { user, logout } = useAuth();
+
+
+    const [request, response, promptAsync] = useAuthRequest(
+        {
+            clientId: GOOGLE_ANDROID_CLIENT_ID,
+            redirectUri: REDIRECT_URI,
+            scopes: SCOPES,
+            responseType: ResponseType.Code
+        },
+        discovery
+    );
+
+    const handleAccountAccess = async () => {
+        console.log('About to start OAuth with URI:', REDIRECT_URI);
+
+        try {
+            const result = await promptAsync();
+            console.log('OAuth result:', result);
+
+            if (result?.type === 'error') {
+                console.error('OAuth error:', result.error, result.params || {});
+            }
+        } catch (err) {
+            console.error('Exception during OAuth:', err);
+        }
+    };
+
+
+    useEffect(() => {
+        if (response?.type === 'success') {
+            const { authentication, params } = response;
+
+            const tokens = {
+                access_token: authentication.accessToken,
+                refresh_token: params.refresh_token, // Only fields result in refresh_token when conditions met
+                id_token: params.id_token,
+                expires_in: authentication.expiresIn,
+                token_type: authentication.tokenType,
+                scope: params.scope,
+            };
+
+            // 🔁 Send access token to your backend
+            fetch(SAVE_TOKENS_ROUTE, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(tokens),
+            }).then(res => res.json())
+                .then(data => console.log('Tokens saved:', data))
+                .catch(err => console.error('Error:', err))
+        } else {
+            console.log(response);
+        }
+    }, [response]);
+
 
     const logoutUser = async () => {
         await logout();
@@ -44,19 +113,31 @@ export default function SettingsScreen() {
                         icon="person-circle-outline"
                         title="Username"
                         subtitle={user?.username || 'Not set'}
-                        showArrow={false}
                     />
                     <SettingItem
                         icon="person-outline"
                         title="Name"
                         subtitle={user?.full_name || 'Not set'}
-                        showArrow={false}
                     />
                     <SettingItem
                         icon="mail-outline"
                         title="Email"
                         subtitle={user?.email || 'Not set'}
-                        showArrow={false}
+                    />
+                </View>
+                {/* Connect Gmail Account */}
+                <ThemedText type='subtitle' style={styles.sectionHeader}>Connect Gmail Account</ThemedText>
+                <View style={styles.section}>
+                    <SettingItem
+                        disabled={!request}
+                        icon="send-outline"
+                        title="Connect"
+                        onPress={() => {
+                            handleAccountAccess();
+                        }}
+                        showArrow
+                    // subtitle={user?.username || 'Not set'}
+                    // showArrow={true}
                     />
                 </View>
 
@@ -124,6 +205,8 @@ export default function SettingsScreen() {
         </View>
     );
 }
+
+export default SettingsScreen;
 
 const styles = StyleSheet.create({
     container: {
