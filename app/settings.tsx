@@ -9,7 +9,7 @@ import React, { useEffect } from "react";
 import { ScrollView, StyleSheet, View, Linking } from 'react-native';
 import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
-import { GOOGLE_ANDROID_CLIENT_ID, GOOGLE_WEB_CLIENT_ID, SAVE_TOKENS_ROUTE } from '@env';
+import { GOOGLE_ANDROID_CLIENT_ID, GOOGLE_WEB_CLIENT_ID, GMAIL_OAUTH_CODE_ROUTE } from '@env';
 import { useAuthRequest, makeRedirectUri, ResponseType } from 'expo-auth-session'
 // import { Prompt } from 'expo-auth-session';
 
@@ -58,28 +58,35 @@ const SettingsScreen = () => {
 
 
     useEffect(() => {
-        if (response?.type === 'success') {
-            const { authentication, params } = response;
+        try {
+            if (response?.type === 'success') {
+                console.log('OAuth Success Response:', response);
 
-            const tokens = {
-                access_token: authentication.accessToken,
-                refresh_token: params.refresh_token, // Only fields result in refresh_token when conditions met
-                id_token: params.id_token,
-                expires_in: authentication.expiresIn,
-                token_type: authentication.tokenType,
-                scope: params.scope,
-            };
+                const { code, scope } = response.params || {};
 
-            // 🔁 Send access token to your backend
-            fetch(SAVE_TOKENS_ROUTE, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(tokens),
-            }).then(res => res.json())
-                .then(data => console.log('Tokens saved:', data))
-                .catch(err => console.error('Error:', err))
-        } else {
-            console.log(response);
+                if (!code) {
+                    console.error('No authorization code returned!');
+                    return;
+                }
+
+                // 🔁 Send authorization code to backend for token exchange
+                fetch(GMAIL_OAUTH_CODE_ROUTE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code, scope }),
+                })
+                    .then(res => res.json())
+                    .then(data => console.log('Tokens exchanged & saved:', data))
+                    .catch(err => console.error('Error saving tokens:', err));
+            }
+            else if (response?.type === 'error') {
+                console.error('OAuth flow error:', response.error, response.params || {});
+            }
+            else if (response) {
+                console.warn('Unexpected OAuth response:', response);
+            }
+        } catch (err) {
+            console.error('Exception in response handler:', err);
         }
     }, [response]);
 
