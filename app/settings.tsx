@@ -20,13 +20,14 @@ const REDIRECT_URI = makeRedirectUri({ scheme: "com.bedead.amaai" });
 
 const discovery = {
     authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
-    tokenEndpoint: "https://oauth2.googleapis.com/token"
+    tokenEndpoint: "https://oauth2.googleapis.com/token",
+    revocationEndpoint: 'https://oauth2.googleapis.com/revoke',
 };
 const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.modify', 'email',
     'profile'];
 
 const SettingsScreen = () => {
-    const [accessToken, setAccessToken] = React.useState(null);
+    const { gmailAccounts, addGmailAccount, removeGmailAccount } = useAuth();
     const [voiceEnabled, setVoiceEnabled] = React.useState(false);
     const [notifications, setNotifications] = React.useState(true);
     const { theme, colors, toggleTheme } = useTheme();
@@ -63,14 +64,11 @@ const SettingsScreen = () => {
                         discovery
                     );
 
-                    console.log('Token result:', tokenResult);
-
                     // 🔹 Get Gmail account email
                     const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
                         headers: { Authorization: `Bearer ${tokenResult.accessToken}` },
                     });
                     const userInfo = await userInfoRes.json();
-                    console.log('Google account info:', userInfo);
 
                     // Send tokens to backend
                     const saveResp = await fetch(GMAIL_OAUTH_TOKEN_ROUTE, {
@@ -83,10 +81,15 @@ const SettingsScreen = () => {
                             token: tokenResult
                         }),
                     });
-                    
-                    if (tokenResult.refreshToken) {
-                        await AsyncStorage.setItem('google_refresh_token', tokenResult.refreshToken);
-                    }
+
+                    await addGmailAccount({
+                        email: userInfo.email,
+                        refreshToken: tokenResult.refreshToken,
+                        accessToken: tokenResult.accessToken,
+                        expiresIn: tokenResult.expiresIn,
+                        tokenType: tokenResult.tokenType,
+                        scope: tokenResult.scope,
+                    });
 
                     console.log('Backend save response:', await saveResp.json());
                 } catch (err) {
@@ -98,31 +101,6 @@ const SettingsScreen = () => {
         })();
     }, [response]);
 
-
-    const refreshAccessToken = async () => {
-        try {
-            const refreshToken = await AsyncStorage.getItem('google_refresh_token');
-            if (!refreshToken) {
-                console.warn('No refresh token found, re-login needed');
-                return null;
-            }
-
-            const refreshed = await AuthSession.refreshAsync(
-                {
-                    clientId: GOOGLE_ANDROID_CLIENT_ID,
-                    refreshToken,
-                },
-                discovery
-            );
-
-            console.log('Refreshed token:', refreshed);
-            setAccessToken(refreshed.accessToken);
-            return refreshed.accessToken;
-        } catch (err) {
-            console.error('Token refresh failed:', err);
-            return null;
-        }
-    };
 
     const logoutUser = async () => {
         await logout();
@@ -153,21 +131,42 @@ const SettingsScreen = () => {
                         icon="person-circle-outline"
                         title="Username"
                         subtitle={user?.username || 'Not set'}
+                        disabled
                     />
                     <SettingItem
                         icon="person-outline"
                         title="Name"
                         subtitle={user?.full_name || 'Not set'}
+                        disabled
                     />
                     <SettingItem
                         icon="mail-outline"
                         title="Email"
                         subtitle={user?.email || 'Not set'}
+                        disabled
                     />
                 </View>
                 {/* Connect Gmail Account */}
-                <ThemedText type='subtitle' style={styles.sectionHeader}>Connect Gmail Account</ThemedText>
+                <ThemedText type='subtitle' style={styles.sectionHeader}>Gmail Accounts</ThemedText>
                 <View style={styles.section}>
+                    {gmailAccounts.length > 0 ? (
+                        gmailAccounts.map((acc) => (
+                            <SettingItem
+                                key={acc.email}
+                                icon="mail-outline"
+                                title={acc.email}
+                                disabled
+                            />
+                        ))
+                    ) : (
+                        <View >
+                            {/* No Gmail accounts connected */}
+                            <SettingItem
+                                title='No Gmail accounts connected'
+                                disabled
+                            />
+                        </View>
+                    )}
                     <SettingItem
                         disabled={!request}
                         icon="send-outline"
@@ -176,10 +175,9 @@ const SettingsScreen = () => {
                             promptAsync();
                         }}
                         showArrow
-                    // subtitle={user?.username || 'Not set'}
-                    // showArrow={true}
                     />
                 </View>
+
 
                 {/* Preferences Section */}
                 <ThemedText type='subtitle' style={styles.sectionHeader}>Preferences</ThemedText>
@@ -225,6 +223,7 @@ const SettingsScreen = () => {
                         title="App Version"
                         subtitle={Constants.expoConfig?.version || '1.0.0'}
                         showArrow={false}
+                        disabled
                     />
                 </View>
 
