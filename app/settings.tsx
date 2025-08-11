@@ -9,9 +9,10 @@ import React, { useEffect } from "react";
 import { ScrollView, StyleSheet, View, Linking } from 'react-native';
 import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
-import { GOOGLE_ANDROID_CLIENT_ID, GOOGLE_WEB_CLIENT_ID, GMAIL_OAUTH_CODE_ROUTE } from '@env';
+import * as AuthSession from 'expo-auth-session';
+import { GOOGLE_ANDROID_CLIENT_ID, GMAIL_OAUTH_TOKEN_ROUTE } from '@env';
 import { useAuthRequest, makeRedirectUri, ResponseType } from 'expo-auth-session'
-// import { Prompt } from 'expo-auth-session';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -21,7 +22,8 @@ const discovery = {
     authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
     tokenEndpoint: "https://oauth2.googleapis.com/token"
 };
-const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.modify'];
+const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.modify', 'email',
+    'profile'];
 
 const SettingsScreen = () => {
     const [accessToken, setAccessToken] = React.useState(null);
@@ -41,56 +43,86 @@ const SettingsScreen = () => {
         discovery
     );
 
-    const handleAccountAccess = async () => {
-        console.log('About to start OAuth with URI:', REDIRECT_URI);
-
-        try {
-            const result = await promptAsync();
-            console.log('OAuth result:', result);
-
-            if (result?.type === 'error') {
-                console.error('OAuth error:', result.error, result.params || {});
-            }
-        } catch (err) {
-            console.error('Exception during OAuth:', err);
-        }
-    };
-
 
     useEffect(() => {
-        try {
+        (async () => {
             if (response?.type === 'success') {
-                console.log('OAuth Success Response:', response);
+                try {
+                    const { code } = response.params;
 
-                const { code, scope } = response.params || {};
-                const user_id = user?.id;
-                const username = user?.username;
-                if (!code) {
-                    console.error('No authorization code returned!');
-                    return;
+                    // Exchange the code for tokens *in the app*
+                    const tokenResult = await AuthSession.exchangeCodeAsync(
+                        {
+                            code,
+                            clientId: GOOGLE_ANDROID_CLIENT_ID,
+                            redirectUri: REDIRECT_URI,
+                            extraParams: {
+                                code_verifier: request.codeVerifier, // PKCE magic
+                            },
+                        },
+                        discovery
+                    );
+
+                    console.log('Token result:', tokenResult);
+
+                    // 🔹 Get Gmail account email
+                    const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                        headers: { Authorization: `Bearer ${tokenResult.accessToken}` },
+                    });
+                    const userInfo = await userInfoRes.json();
+                    console.log('Google account info:', userInfo);
+
+                    // Send tokens to backend
+                    const saveResp = await fetch(GMAIL_OAUTH_TOKEN_ROUTE, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: user?.id,
+                            username: user?.username,
+                            account_email: userInfo.email,
+                            token: tokenResult
+                        }),
+                    });
+                    
+                    if (tokenResult.refreshToken) {
+                        await AsyncStorage.setItem('google_refresh_token', tokenResult.refreshToken);
+                    }
+
+                    console.log('Backend save response:', await saveResp.json());
+                } catch (err) {
+                    console.error('Token exchange failed:', err);
                 }
-
-                // 🔁 Send authorization code to backend for token exchange
-                fetch(GMAIL_OAUTH_CODE_ROUTE, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id, username, code, scope }),
-                })
-                    .then(res => res.json())
-                    .then(data => console.log('Tokens exchanged & saved:', data))
-                    .catch(err => console.error('Error saving tokens:', err));
+            } else if (response) {
+                console.log('OAuth response:', response);
             }
-            else if (response?.type === 'error') {
-                console.error('OAuth flow error:', response.error, response.params || {});
-            }
-            else if (response) {
-                console.warn('Unexpected OAuth response:', response);
-            }
-        } catch (err) {
-            console.error('Exception in response handler:', err);
-        }
+        })();
     }, [response]);
 
+
+    const refreshAccessToken = async () => {
+        try {
+            const refreshToken = await AsyncStorage.getItem('google_refresh_token');
+            if (!refreshToken) {
+                console.warn('No refresh token found, re-login needed');
+                return null;
+            }
+
+            const refreshed = await AuthSession.refreshAsync(
+                {
+                    clientId: GOOGLE_ANDROID_CLIENT_ID,
+                    refreshToken,
+                },
+                discovery
+            );
+
+            console.log('Refreshed token:', refreshed);
+            setAccessToken(refreshed.accessToken);
+            return refreshed.accessToken;
+        } catch (err) {
+            console.error('Token refresh failed:', err);
+            return null;
+        }
+    };
 
     const logoutUser = async () => {
         await logout();
@@ -141,7 +173,7 @@ const SettingsScreen = () => {
                         icon="send-outline"
                         title="Connect"
                         onPress={() => {
-                            handleAccountAccess();
+                            promptAsync();
                         }}
                         showArrow
                     // subtitle={user?.username || 'Not set'}
