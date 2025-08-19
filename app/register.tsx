@@ -34,9 +34,9 @@ export default function RegisterScreen() {
         try {
             // Create user object
             const userData = {
-                id: uuid.v4(),
+                user_id: uuid.v4(),
                 account_created: new Date().toISOString(),
-                username: username.trim(),
+                username: username.trim().toLowerCase(),
                 full_name: null,
                 email: email.trim(),
                 password: password.trim()

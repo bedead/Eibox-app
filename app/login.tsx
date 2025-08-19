@@ -31,7 +31,7 @@ export default function LoginScreen() {
         try {
             // Create user object
             const userData = {
-                username: username.trim(),
+                username: username.trim().toLowerCase(),
                 password: password.trim()
             };
 

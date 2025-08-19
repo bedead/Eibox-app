@@ -5,7 +5,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import * as AuthSession from 'expo-auth-session';
 
 interface User {
-    id: string;
+    user_id: string;
     account_created: string;
     username: string;
     full_name: string | null | undefined;

@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
-import { useEffect, useRef, useState , useCallback } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
 import { Alert, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
 
 
@@ -39,6 +39,7 @@ export default function ChatScreen() {
     const threadIdRef = useRef<string>(getThreadId());
     const [wsKey, setWsKey] = useState(0);
     const currentStreamingMessageId = useRef<string | null>(null);
+    console.log(WEBSOCKET_CHAT_URL_V1);
 
     // WebSocket connection
     useEffect(() => {
