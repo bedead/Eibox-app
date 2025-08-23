@@ -22,6 +22,7 @@ export default function RootLayout(): React.JSX.Element {
                         <Stack.Screen name="chat" />
                         <Stack.Screen name="login" />
                         <Stack.Screen name="register" />
+                        <Stack.Screen name="gmail_oauth" />
                         <Stack.Screen name="settings" />
                     </Stack>
                 </MenuProvider>

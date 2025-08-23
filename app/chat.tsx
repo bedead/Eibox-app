@@ -9,7 +9,6 @@ import { WEBSOCKET_CHAT_URL_V1 } from '@env'
 import { useTheme } from "@/context/ThemeContext"
 import IconButton from "@/components/IconButton"
 import { router } from "expo-router"
-import { Button } from "@react-navigation/elements"
 import { useAuth } from "@/context/AuthContext"
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -39,7 +38,7 @@ export default function ChatScreen() {
     const threadIdRef = useRef<string>(getThreadId());
     const [wsKey, setWsKey] = useState(0);
     const currentStreamingMessageId = useRef<string | null>(null);
-    console.log(WEBSOCKET_CHAT_URL_V1);
+    // console.log(WEBSOCKET_CHAT_URL_V1);
 
     // WebSocket connection
     useEffect(() => {

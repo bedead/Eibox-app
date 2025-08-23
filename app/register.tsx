@@ -3,7 +3,7 @@ import uuid from 'react-native-uuid';
 import { ThemedText } from '@/components/ThemedText';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
@@ -22,8 +22,10 @@ export default function RegisterScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
-    const { login } = useAuth();
+    const { login, gmailAccounts } = useAuth();
     const { colors } = useTheme();
+
+
 
     const handleContinue = async () => {
         if (!username.trim()) return;
@@ -63,8 +65,13 @@ export default function RegisterScreen() {
             await login(userData);
             console.log('User logged in:', userData);
 
-            // 4. Navigate to chat
-            router.replace('/chat');
+            // If no gmailAccounts existig redirect to connect a gmail account, else move to chat screen
+            if (!gmailAccounts || gmailAccounts.length === 0) {
+                router.replace("/gmail_oauth");
+            } else {
+                router.replace("/chat");
+            }
+
         } catch (error) {
             console.error('Error saving user:', error);
         } finally {

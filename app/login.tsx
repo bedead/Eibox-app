@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { USER_LOGIN_ROUTE } from '@env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Link, router } from 'expo-router';
+import { Link, Redirect, router } from 'expo-router';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
@@ -21,8 +21,9 @@ export default function LoginScreen() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
-    const { login } = useAuth();
+    const { login, gmailAccounts } = useAuth();
     const { colors } = useTheme();
+
 
     const handleContinue = async () => {
         if (!username.trim()) return;
@@ -43,6 +44,7 @@ export default function LoginScreen() {
                 },
                 body: JSON.stringify(userData),
             });
+            console.log(USER_LOGIN_ROUTE);
 
             const data = await response.json();
 
@@ -57,8 +59,14 @@ export default function LoginScreen() {
             // Update auth context
             await login(data.data);
 
-            // Navigate to chat
-            router.replace('/chat');
+
+            // If no gmailAccounts existig redirect to connect a gmail account, else move to chat screen
+            if (!gmailAccounts || gmailAccounts.length === 0) {
+                router.replace("/gmail_oauth");
+            } else {
+                router.replace("/chat");
+            }
+
         } catch (error) {
             console.error('Error saving user:', error);
         } finally {

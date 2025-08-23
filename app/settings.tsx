@@ -8,98 +8,20 @@ import { router } from 'expo-router';
 import React, { useEffect } from "react";
 import { ScrollView, StyleSheet, View, Linking } from 'react-native';
 import Constants from 'expo-constants';
-import * as WebBrowser from 'expo-web-browser';
-import * as AuthSession from 'expo-auth-session';
-import { GOOGLE_ANDROID_CLIENT_ID, GMAIL_OAUTH_TOKEN_ROUTE } from '@env';
-import { useAuthRequest, makeRedirectUri, ResponseType } from 'expo-auth-session'
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
-WebBrowser.maybeCompleteAuthSession();
 
-const REDIRECT_URI = makeRedirectUri({ scheme: "com.bedead.amaai" });
-
-const discovery = {
-    authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
-    tokenEndpoint: "https://oauth2.googleapis.com/token",
-    revocationEndpoint: 'https://oauth2.googleapis.com/revoke',
-};
-const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.modify', 'email',
-    'profile'];
 
 const SettingsScreen = () => {
-    const { gmailAccounts, addGmailAccount, removeGmailAccount } = useAuth();
+    const { gmailAccounts, removeGmailAccount } = useAuth();
     const [voiceEnabled, setVoiceEnabled] = React.useState(false);
     const [notifications, setNotifications] = React.useState(true);
     const { theme, colors, toggleTheme } = useTheme();
     const { user, logout } = useAuth();
 
 
-    const [request, response, promptAsync] = useAuthRequest(
-        {
-            clientId: GOOGLE_ANDROID_CLIENT_ID,
-            redirectUri: REDIRECT_URI,
-            scopes: SCOPES,
-            responseType: ResponseType.Code
-        },
-        discovery
-    );
-
-
-    useEffect(() => {
-        (async () => {
-            if (response?.type === 'success') {
-                try {
-                    const { code } = response.params;
-
-                    // Exchange the code for tokens *in the app*
-                    const tokenResult = await AuthSession.exchangeCodeAsync(
-                        {
-                            code,
-                            clientId: GOOGLE_ANDROID_CLIENT_ID,
-                            redirectUri: REDIRECT_URI,
-                            extraParams: {
-                                code_verifier: request.codeVerifier, // PKCE magic
-                            },
-                        },
-                        discovery
-                    );
-
-                    // 🔹 Get Gmail account email
-                    const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                        headers: { Authorization: `Bearer ${tokenResult.accessToken}` },
-                    });
-                    const userInfo = await userInfoRes.json();
-
-                    // Send tokens to backend
-                    const saveResp = await fetch(GMAIL_OAUTH_TOKEN_ROUTE, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            user_id: user?.user_id,
-                            username: user?.username,
-                            account_email: userInfo.email,
-                            token: tokenResult
-                        }),
-                    });
-
-                    await addGmailAccount({
-                        email: userInfo.email,
-                        refreshToken: tokenResult.refreshToken,
-                        accessToken: tokenResult.accessToken,
-                        expiresIn: tokenResult.expiresIn,
-                        tokenType: tokenResult.tokenType,
-                        scope: tokenResult.scope,
-                    });
-
-                    console.log('Backend save response:', await saveResp.json());
-                } catch (err) {
-                    console.error('Token exchange failed:', err);
-                }
-            } else if (response) {
-                console.log('OAuth response:', response);
-            }
-        })();
-    }, [response]);
+    const removeExisitngGmailAccount = (email: string) => {
+        removeGmailAccount(email);
+    }
 
 
     const logoutUser = async () => {
@@ -147,7 +69,7 @@ const SettingsScreen = () => {
                     />
                 </View>
                 {/* Connect Gmail Account */}
-                <ThemedText type='subtitle' style={styles.sectionHeader}>Gmail Accounts</ThemedText>
+                <ThemedText type='subtitle' style={styles.sectionHeader}>Connected Gmail Accounts</ThemedText>
                 <View style={styles.section}>
                     {gmailAccounts.length > 0 ? (
                         gmailAccounts.map((acc) => (
@@ -167,15 +89,15 @@ const SettingsScreen = () => {
                             />
                         </View>
                     )}
-                    <SettingItem
-                        disabled={!request}
+                    {/* <SettingItem
+                        // disabled={!request}
                         icon="send-outline"
-                        title="Connect"
+                        title="Remove Existing Gmail Account"
                         onPress={() => {
-                            promptAsync();
+                            removeExisitngGmailAccount(gmailAccounts[0]?.email || '');
                         }}
                         showArrow
-                    />
+                    /> */}
                 </View>
 
 
