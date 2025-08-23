@@ -97,7 +97,8 @@ export const useBackendGmailAuth = () => {
                     return { success: true, email: data.email };
                 }
 
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                // setting this to 200ms to reduce the chance of timeout, delay in user experience 
+                await new Promise(resolve => setTimeout(resolve, 200));
             } catch (error) {
                 console.error(`Polling error attempt ${attempt + 1}:`, error);
             }

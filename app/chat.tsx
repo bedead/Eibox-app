@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons"
-import { LinearGradient } from "expo-linear-gradient"
 import { useEffect, useRef, useState, useCallback } from "react"
 import { Alert, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
 
@@ -10,7 +9,6 @@ import { useTheme } from "@/context/ThemeContext"
 import IconButton from "@/components/IconButton"
 import { router } from "expo-router"
 import { useAuth } from "@/context/AuthContext"
-type IconName = keyof typeof Ionicons.glyphMap;
 
 interface Message {
     id: string;

@@ -1,6 +1,6 @@
 // Update file: app/index.tsx
 import { useAuth } from '@/context/AuthContext';
-import { Redirect } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
 
 export default function Index() {
@@ -16,6 +16,11 @@ export default function Index() {
     // If no user, redirect to auth page
     if (!user) {
         return <Redirect href="/register" />;
+    }
+
+    // if gmail accounts are empty, redirect to gmail oauth page
+    if (!gmailAccounts || gmailAccounts.length === 0) {
+        router.replace("/gmail_oauth");
     }
     // If user exists, redirect to chat page
     return <Redirect href="/chat" />;
