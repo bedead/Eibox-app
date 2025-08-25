@@ -1,7 +1,9 @@
 import { GmailConnectButton } from "@/components/GmailAuthService";
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
 import { useAuth } from "@/context/AuthContext";
 import { router } from "expo-router";
-import { View, Text, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 
 // Usage Example in your main component
 const GmailOauthScreen = () => {
@@ -19,72 +21,46 @@ const GmailOauthScreen = () => {
         }
     };
 
+
     return (
-        <View style={styles.screen}>
-            <Text style={styles.title}>Connect Your Gmail Account</Text>
-            <Text style={styles.description}>
+        <ThemedView style={styles.screen}>
+            <ThemedText type="title" style={styles.title}>
+                Connect Your Gmail Account
+            </ThemedText>
+            <ThemedText style={styles.description}>
                 We'll open your browser to securely connect your Gmail account.
                 All authentication is handled by Google on our secure servers.
-            </Text>
+            </ThemedText>
 
             <GmailConnectButton
                 username={user?.username}
                 onConnectionResult={handleConnectionResult}
             />
-        </View>
+        </ThemedView>
     );
 };
 
 
 const styles = StyleSheet.create({
-    container: {
-        alignItems: 'center',
-        marginVertical: 20,
-    },
-    button: {
-        paddingHorizontal: 24,
-        paddingVertical: 12,
-        borderRadius: 8,
-        minWidth: 200,
-        alignItems: 'center',
-    },
-    buttonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    loadingContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    spinner: {
-        marginRight: 8,
-    },
-    helpText: {
-        textAlign: 'center',
-        color: '#666',
-        fontSize: 14,
-        marginTop: 12,
-        paddingHorizontal: 20,
-    },
     screen: {
         flex: 1,
-        padding: 20,
+        padding: 24,
         justifyContent: 'center',
         alignItems: 'center',
     },
     title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 16,
+        marginBottom: 24,
         textAlign: 'center',
     },
     description: {
-        fontSize: 16,
-        color: '#666',
         textAlign: 'center',
-        marginBottom: 32,
-        lineHeight: 24,
+        marginBottom: 40,
+        maxWidth: '80%',
+    },
+    helpText: {
+        textAlign: 'center',
+        marginTop: 24,
+        opacity: 0.7,
     },
 });
 

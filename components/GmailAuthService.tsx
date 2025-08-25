@@ -1,16 +1,18 @@
 // GmailAuthService.js - React Native Backend OAuth Implementation
-import React, { useState, useEffect } from 'react';
-import {
-    View,
-    Text,
-    TouchableOpacity,
-    StyleSheet,
-    Alert,
-    ActivityIndicator,
-} from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
+import { Colors } from '@/constants/Colors';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { GMAIL_OAUTH_START_ROUTE, GMAIL_OAUTH_STATUS_ROUTE } from "@env";
 import * as Crypto from 'expo-crypto';
-import { GMAIL_OAUTH_START_ROUTE, GMAIL_OAUTH_STATUS_ROUTE } from "@env"
+import * as WebBrowser from 'expo-web-browser';
+import React, { useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    Pressable,
+    StyleSheet
+} from 'react-native';
+import { ThemedText } from './ThemedText';
+import { ThemedView } from './ThemedView';
 
 
 export const useBackendGmailAuth = () => {
@@ -127,8 +129,22 @@ const generateMobileSessionId = async () => {
 };
 
 
+interface ConnectionResult {
+    success: boolean;
+    email?: string;
+    error?: string;
+    message?: string;
+}
+
+interface GmailConnectButtonProps {
+    username?: string;
+    onConnectionResult?: (result: ConnectionResult) => void;
+}
+
 // React Component Example
-export const GmailConnectButton = ({ username, onConnectionResult }) => {
+export const GmailConnectButton: React.FC<GmailConnectButtonProps> = ({ username, onConnectionResult }) => {
+    const colorScheme = useColorScheme() ?? 'light';
+    const colors = Colors[colorScheme];
     const { connectGmailAccount, isLoading, authStatus } = useBackendGmailAuth();
 
     const handleConnect = async () => {
@@ -169,43 +185,42 @@ export const GmailConnectButton = ({ username, onConnectionResult }) => {
         }
     };
 
-    const getStatusColor = () => {
-        switch (authStatus) {
-            case 'success':
-                return '#4CAF50';
-            case 'error':
-                return '#f44336';
-            case 'authenticating':
-            case 'polling':
-                return '#2196F3';
-            default:
-                return '#4CAF50';
-        }
-    };
 
     return (
-        <View style={styles.container}>
-            <TouchableOpacity
-                style={[styles.button, { backgroundColor: getStatusColor() }]}
+        <ThemedView style={styles.container}>
+            <Pressable
+                style={({ pressed }) => [
+                    styles.button,
+                    {
+                        backgroundColor: colors.buttonBackground,
+                        opacity: pressed ? 0.8 : 1,
+                    }
+                ]}
                 onPress={handleConnect}
                 disabled={isLoading}
             >
                 {isLoading ? (
-                    <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="small" color="#fff" style={styles.spinner} />
-                        <Text style={styles.buttonText}>{getStatusText()}</Text>
-                    </View>
+                    <ThemedView style={styles.loadingContainer}>
+                        <ActivityIndicator size="small" color={colors.buttonText} style={styles.spinner} />
+                        <ThemedText style={[styles.buttonText, { color: colors.buttonText }]}>
+                            {getStatusText()}
+                        </ThemedText>
+                    </ThemedView>
                 ) : (
-                    <Text style={styles.buttonText}>{getStatusText()}</Text>
+                    <ThemedText style={[styles.buttonText, { color: colors.buttonText }]}>
+                        {getStatusText()}
+                    </ThemedText>
                 )}
-            </TouchableOpacity>
+            </Pressable>
 
-            {authStatus === 'polling' && (
-                <Text style={styles.helpText}>
-                    Please complete the authorization in your browser, then return to this app.
-                </Text>
-            )}
-        </View>
+            {
+                authStatus === 'polling' && (
+                    <ThemedText type="default" style={styles.helpText}>
+                        Please complete the authorization in your browser, then return to this app.
+                    </ThemedText>
+                )
+            }
+        </ThemedView >
     );
 };
 
@@ -219,46 +234,30 @@ const styles = StyleSheet.create({
     button: {
         paddingHorizontal: 24,
         paddingVertical: 12,
-        borderRadius: 8,
+        borderRadius: 10,
         minWidth: 200,
         alignItems: 'center',
+        elevation: 2,
+        borderWidth: 0,              // Prevent default highlight border
     },
     buttonText: {
-        color: '#fff',
         fontSize: 16,
         fontWeight: '600',
+        letterSpacing: 0.5,
     },
     loadingContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'transparent'
     },
     spinner: {
-        marginRight: 8,
+        marginRight: 12,
     },
     helpText: {
         textAlign: 'center',
-        color: '#666',
-        fontSize: 14,
-        marginTop: 12,
-        paddingHorizontal: 20,
-    },
-    screen: {
-        flex: 1,
-        padding: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 16,
-        textAlign: 'center',
-    },
-    description: {
-        fontSize: 16,
-        color: '#666',
-        textAlign: 'center',
-        marginBottom: 32,
-        lineHeight: 24,
+        marginTop: 16,
+        paddingHorizontal: 24,
+        opacity: 0.8,
     },
 });
